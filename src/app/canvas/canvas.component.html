@@ -1,6 +1,9 @@
 
 <canvas #canvas width="600" height="300"></canvas>
 <div>
-    <button (click)="play()">Play</button>   
+    <button [disabled]="isPlaying" (click)="play()">Play</button>   
+</div>
+<div>
+    <button  [disabled]="!isPlaying" (click)="end()">End</button>   
 </div>
 

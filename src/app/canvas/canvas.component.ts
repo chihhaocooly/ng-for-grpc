@@ -1,5 +1,7 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { EventManager } from '@angular/platform-browser';
+import { CircleInfo, CircleInfoList } from 'proto/generated/proto/action_pb';
+import { BidirectionalStream, ToDoServiceClient } from 'proto/generated/proto/action_pb_service';
 
 @Component({
   selector: 'app-canvas',
@@ -9,137 +11,123 @@ import { EventManager } from '@angular/platform-browser';
 export class CanvasComponent implements OnInit {
 
   @ViewChild('canvas', { static: true })
-  canvas!: ElementRef<HTMLCanvasElement>;  
+  canvas!: ElementRef<HTMLCanvasElement>;
 
   private ctx!: CanvasRenderingContext2D;
 
   public clientWeb = new ToDoServiceClient('https://node-grpc-envoy-dnz3lqp74q-de.a.run.app');
+  callBack!: Function;
 
-  constructor(private eventManager: EventManager) { 
+  constructor(private eventManager: EventManager) {
 
   }
 
-  x=300;
-  y=150;
-  colorCode:string = '';
+  isPlaying = false;
+  stream!: BidirectionalStream<CircleInfo, CircleInfoList>
+  colorCode: string = '';
   myCircle!: Circle;
-  allCircle:Circle[] = [];
+  allCircle: Circle[] = [];
 
   ngOnInit(): void {
     this.ctx = this.canvas.nativeElement.getContext('2d')!;
-
-    this.eventManager.addEventListener(document.body, 'keydown', (event:any) => {
-      if(event.keyCode == 37){
-        this.x= this.x -4
-        //更新自己的資料
-        this.myCircle.x = this.x;
-        this.animate();
-        //傳送資料
-        let circleInfo : CircleInfo = this.createCircleInfo(this.myCircle);
-        this.clientWeb.bidiCircleData().write(circleInfo);
-      }
-      if(event.keyCode == 38 ){
-        this.y= this.y -4
-        //更新自己的資料
-        this.myCircle.y = this.y;
-        this.animate();
-        //傳送資料
-        let circleInfo : CircleInfo = this.createCircleInfo(this.myCircle);
-        this.clientWeb.bidiCircleData().write(circleInfo);
-      }
-      if(event.keyCode == 39){
-        this.x= this.x +4
-        //更新自己的資料
-        this.myCircle.x = this.x;
-        this.animate();
-        //傳送資料
-        let circleInfo : CircleInfo = this.createCircleInfo(this.myCircle);
-        this.clientWeb.bidiCircleData().write(circleInfo);
-      }
-      if(event.keyCode == 40){
-        this.y= this.y +4
-        //更新自己的資料
-        this.myCircle.y = this.y;
-        this.animate();
-        //傳送資料
-        let circleInfo : CircleInfo = this.createCircleInfo(this.myCircle);
-        this.clientWeb.bidiCircleData().write(circleInfo);
-      }
-    });
   }
 
   createCircleInfo(circle: Circle): CircleInfo {
-    return {
-      colcoCode:circle.colcoCode,
-      x:circle.x,
-      y:circle.y
-    }
+    let circleInfo = new CircleInfo();
+    circleInfo.setX(circle.x);
+    circleInfo.setY(circle.y);
+    circleInfo.setColorcode(circle.colcoCode);
+    circleInfo.setIsfinish(false);
+    return circleInfo;
   }
 
   getColorCode() {
     var makingColorCode = '0123456789ABCDEF';
     var finalCode = '#';
     for (var counter = 0; counter < 6; counter++) {
-       finalCode =finalCode+ makingColorCode[Math.floor(Math.random() * 16)];
+      finalCode = finalCode + makingColorCode[Math.floor(Math.random() * 16)];
     }
     return finalCode;
- }
-
-  play()
-  {
-    //1.創建自己的Circle;
-    this.x = 300;
-    this.y = 150;
-    this.colorCode = this.getColorCode();
-    this.myCircle = new Circle(this.ctx,this.colorCode,this.x,this.y);
-    this.allCircle.push(this.myCircle);
-    this.animate();
-    //2.建立起grpc連線
-    this.clientWeb.bidiCircleInfoData().on('data', (resultItem) => {
-      const result = resultItem.toObject() as CircleInfo;
-      this.grpcRevice(result)
-      
-    });
-
-    //3.傳送初始資料上去
-    let circleInfo : CircleInfo = this.createCircleInfo(this.myCircle);
-    this.clientWeb.bidiCircleInfoData().write(circleInfo);
   }
 
-  grpcRevice(circleInfo : CircleInfo)
-  {
+  play() {
+    this.isPlaying = true;
+
+    this.callBack =this.eventManager.addEventListener(document.body, 'keydown', (event: any) => {
+      if (event.keyCode == 37) {
+        this.myCircle.x = this.myCircle.x - 4
+        //傳送資料
+        let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
+        this.clientWeb.bidiCircleInfoData().write(circleInfo);
+      }
+      if (event.keyCode == 38) {
+        this.myCircle.y = this.myCircle.y - 4
+        //傳送資料
+        let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
+        this.clientWeb.bidiCircleInfoData().write(circleInfo);
+      }
+      if (event.keyCode == 39) {
+        this.myCircle.x = this.myCircle.x + 4
+        //傳送資料
+        let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
+        this.clientWeb.bidiCircleInfoData().write(circleInfo);
+      }
+      if (event.keyCode == 40) {
+        this.myCircle.y = this.myCircle.y + 4
+        //傳送資料
+        let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
+        this.clientWeb.bidiCircleInfoData().write(circleInfo);
+      }
+    });
+
+    //0.建立起grpc連線
+    this.stream =  this.clientWeb.bidiCircleInfoData().on('data', (resultItem) => {
+      console.log(resultItem);
+      const result = resultItem.getCircleinfosList();
+      this.grpcRevice(result)
+    });
+
+    //1.創建自己的Circle;
+    this.colorCode = this.getColorCode();
+    this.myCircle = new Circle(this.ctx, this.colorCode, 300, 150);
+
+    //3.傳送初始資料上去
+    let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
+    this.stream.write(circleInfo);
+  }
+
+  grpcRevice(circleInfos: CircleInfo[]) {
     //檢查是否為自己，自己在本機更新過了
-    if(this.colorCode == circleInfo.colcoCode)
-    {
-      return;
-    }
-    //檢查此顏色是否存在
-    //更新此顏色的座標
-    let circle = this.allCircle.find(s=>s.colcoCode == circleInfo.colcoCode);
-    if(circle)
-    {
-      circle.x = circleInfo.x;
-      circle.y = circle.y;
-    }else
-    {
-      circle = new Circle(this.ctx,circleInfo.colcoCode,circleInfo.x,circleInfo.y);
-    }
+    this.allCircle = [];
+    circleInfos.forEach(circleInfo => {
+      const circle = new Circle(this.ctx, circleInfo.getColorcode(), circleInfo.getX(), circleInfo.getY());
+      this.allCircle.push(circle);
+    })
     //重新畫圖
-   this.animate();
+    this.animate();
   }
 
 
   animate(): void {
     this.ctx.clearRect(0, 0, this.canvas.nativeElement.width, this.canvas.nativeElement.height);
-    this.allCircle.forEach(c=>{
+    this.allCircle.forEach(c => {
       c.draw();
     })
+  }
+
+  end():void{
+    this.isPlaying = false;
+    let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
+    circleInfo.setIsfinish(true);
+    this.stream.write(circleInfo);
+    this.stream.end();
+    this.callBack();
   }
 }
 
 
 export class Square {
-  constructor(private ctx: CanvasRenderingContext2D) {}
+  constructor(private ctx: CanvasRenderingContext2D) { }
 
   draw(x: number, y: number, z: number) {
     this.ctx.fillRect(z * x, z * y, z, z);
@@ -147,10 +135,10 @@ export class Square {
 }
 
 export class Circle {
-  colcoCode:string;
-  x:number;
-  y:number;
-  constructor(private ctx: CanvasRenderingContext2D,colcoCode:string,x:number,y:number) {
+  colcoCode: string;
+  x: number;
+  y: number;
+  constructor(private ctx: CanvasRenderingContext2D, colcoCode: string, x: number, y: number) {
     this.colcoCode = colcoCode;
     this.x = x;
     this.y = y;
@@ -158,19 +146,13 @@ export class Circle {
 
   draw() {
     this.ctx.beginPath();
-    this.ctx.arc(this.x,this.y,10,0,this.degreesToRadians(360),true);
+    this.ctx.arc(this.x, this.y, 10, 0, this.degreesToRadians(360), true);
     this.ctx.fillStyle = this.colcoCode;
     this.ctx.fill();
   }
 
-  degreesToRadians(degrees:number)
-  {
-    return (degrees * Math.PI)/180
+  degreesToRadians(degrees: number) {
+    return (degrees * Math.PI) / 180
   }
 }
 
-export interface CircleInfo{
-  colcoCode:string;
-  x:number;
-  y:number;
-}
