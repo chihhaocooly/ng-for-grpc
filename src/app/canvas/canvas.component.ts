@@ -1,29 +1,34 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { EventManager } from '@angular/platform-browser';
-import { CircleInfo, CircleInfoList } from 'proto/generated/proto/action_pb';
-import { BidirectionalStream, ToDoServiceClient } from 'proto/generated/proto/action_pb_service';
+import {
+  CircleInfo,
+  CircleInfoList,
+} from '../../../proto/generated/proto/action_pb';
+import {
+  BidirectionalStream,
+  ToDoServiceClient,
+} from '../../../proto/generated/proto/action_pb_service';
 
 @Component({
   selector: 'app-canvas',
   templateUrl: './canvas.component.html',
-  styleUrls: ['./canvas.component.css']
+  styleUrls: ['./canvas.component.css'],
 })
 export class CanvasComponent implements OnInit {
-
   @ViewChild('canvas', { static: true })
   canvas!: ElementRef<HTMLCanvasElement>;
 
   private ctx!: CanvasRenderingContext2D;
 
-  public clientWeb = new ToDoServiceClient('https://node-grpc-envoy-dnz3lqp74q-de.a.run.app');
+  public clientWeb = new ToDoServiceClient(
+    'https://node-grpc-envoy-dnz3lqp74q-de.a.run.app'
+  );
   callBack!: Function;
 
-  constructor(private eventManager: EventManager) {
-
-  }
+  constructor(private eventManager: EventManager) {}
 
   isPlaying = false;
-  stream!: BidirectionalStream<CircleInfo, CircleInfoList>
+  stream!: BidirectionalStream<CircleInfo, CircleInfoList>;
   colorCode: string = '';
   myCircle!: Circle;
   allCircle: Circle[] = [];
@@ -53,39 +58,45 @@ export class CanvasComponent implements OnInit {
   play() {
     this.isPlaying = true;
 
-    this.callBack =this.eventManager.addEventListener(document.body, 'keydown', (event: any) => {
-      if (event.keyCode == 37) {
-        this.myCircle.x = this.myCircle.x - 4
-        //傳送資料
-        let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
-        this.clientWeb.bidiCircleInfoData().write(circleInfo);
+    this.callBack = this.eventManager.addEventListener(
+      document.body,
+      'keydown',
+      (event: any) => {
+        if (event.keyCode == 37) {
+          this.myCircle.x = this.myCircle.x - 4;
+          //傳送資料
+          let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
+          this.clientWeb.bidiCircleInfoData().write(circleInfo);
+        }
+        if (event.keyCode == 38) {
+          this.myCircle.y = this.myCircle.y - 4;
+          //傳送資料
+          let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
+          this.clientWeb.bidiCircleInfoData().write(circleInfo);
+        }
+        if (event.keyCode == 39) {
+          this.myCircle.x = this.myCircle.x + 4;
+          //傳送資料
+          let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
+          this.clientWeb.bidiCircleInfoData().write(circleInfo);
+        }
+        if (event.keyCode == 40) {
+          this.myCircle.y = this.myCircle.y + 4;
+          //傳送資料
+          let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
+          this.clientWeb.bidiCircleInfoData().write(circleInfo);
+        }
       }
-      if (event.keyCode == 38) {
-        this.myCircle.y = this.myCircle.y - 4
-        //傳送資料
-        let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
-        this.clientWeb.bidiCircleInfoData().write(circleInfo);
-      }
-      if (event.keyCode == 39) {
-        this.myCircle.x = this.myCircle.x + 4
-        //傳送資料
-        let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
-        this.clientWeb.bidiCircleInfoData().write(circleInfo);
-      }
-      if (event.keyCode == 40) {
-        this.myCircle.y = this.myCircle.y + 4
-        //傳送資料
-        let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
-        this.clientWeb.bidiCircleInfoData().write(circleInfo);
-      }
-    });
+    );
 
     //0.建立起grpc連線
-    this.stream =  this.clientWeb.bidiCircleInfoData().on('data', (resultItem) => {
-      console.log(resultItem);
-      const result = resultItem.getCircleinfosList();
-      this.grpcRevice(result)
-    });
+    this.stream = this.clientWeb
+      .bidiCircleInfoData()
+      .on('data', (resultItem) => {
+        console.log(resultItem);
+        const result = resultItem.getCircleinfosList();
+        this.grpcRevice(result);
+      });
 
     //1.創建自己的Circle;
     this.colorCode = this.getColorCode();
@@ -99,23 +110,32 @@ export class CanvasComponent implements OnInit {
   grpcRevice(circleInfos: CircleInfo[]) {
     //檢查是否為自己，自己在本機更新過了
     this.allCircle = [];
-    circleInfos.forEach(circleInfo => {
-      const circle = new Circle(this.ctx, circleInfo.getColorcode(), circleInfo.getX(), circleInfo.getY());
+    circleInfos.forEach((circleInfo) => {
+      const circle = new Circle(
+        this.ctx,
+        circleInfo.getColorcode(),
+        circleInfo.getX(),
+        circleInfo.getY()
+      );
       this.allCircle.push(circle);
-    })
+    });
     //重新畫圖
     this.animate();
   }
 
-
   animate(): void {
-    this.ctx.clearRect(0, 0, this.canvas.nativeElement.width, this.canvas.nativeElement.height);
-    this.allCircle.forEach(c => {
+    this.ctx.clearRect(
+      0,
+      0,
+      this.canvas.nativeElement.width,
+      this.canvas.nativeElement.height
+    );
+    this.allCircle.forEach((c) => {
       c.draw();
-    })
+    });
   }
 
-  end():void{
+  end(): void {
     this.isPlaying = false;
     let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
     circleInfo.setIsfinish(true);
@@ -125,9 +145,8 @@ export class CanvasComponent implements OnInit {
   }
 }
 
-
 export class Square {
-  constructor(private ctx: CanvasRenderingContext2D) { }
+  constructor(private ctx: CanvasRenderingContext2D) {}
 
   draw(x: number, y: number, z: number) {
     this.ctx.fillRect(z * x, z * y, z, z);
@@ -138,7 +157,12 @@ export class Circle {
   colcoCode: string;
   x: number;
   y: number;
-  constructor(private ctx: CanvasRenderingContext2D, colcoCode: string, x: number, y: number) {
+  constructor(
+    private ctx: CanvasRenderingContext2D,
+    colcoCode: string,
+    x: number,
+    y: number
+  ) {
     this.colcoCode = colcoCode;
     this.x = x;
     this.y = y;
@@ -152,7 +176,6 @@ export class Circle {
   }
 
   degreesToRadians(degrees: number) {
-    return (degrees * Math.PI) / 180
+    return (degrees * Math.PI) / 180;
   }
 }
-
