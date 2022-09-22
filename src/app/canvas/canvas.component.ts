@@ -20,6 +20,7 @@ export class CanvasComponent implements OnInit {
 
   private ctx!: CanvasRenderingContext2D;
 
+  //TODO:修改新的grpc envoy的url
   public clientWeb = new ToDoServiceClient(
     'https://node-grpc-envoy-dnz3lqp74q-de.a.run.app'
   );
@@ -66,30 +67,35 @@ export class CanvasComponent implements OnInit {
           this.myCircle.x = this.myCircle.x - 4;
           //傳送資料
           let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
+          //TODO:傳送資料的方法要改成為何?
           this.clientWeb.bidiCircleInfoData().write(circleInfo);
         }
         if (event.keyCode == 38) {
           this.myCircle.y = this.myCircle.y - 4;
           //傳送資料
           let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
+          //TODO:傳送資料的方法要改成為何?
           this.clientWeb.bidiCircleInfoData().write(circleInfo);
         }
         if (event.keyCode == 39) {
           this.myCircle.x = this.myCircle.x + 4;
           //傳送資料
           let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
+          //TODO:傳送資料的方法要改成為何?
           this.clientWeb.bidiCircleInfoData().write(circleInfo);
         }
         if (event.keyCode == 40) {
           this.myCircle.y = this.myCircle.y + 4;
           //傳送資料
           let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
+          //TODO:傳送資料的方法要改成為何?
           this.clientWeb.bidiCircleInfoData().write(circleInfo);
         }
       }
     );
 
     //0.建立起grpc連線
+    //TODO:建立起grpc連線是否可以用serverStream呢
     this.stream = this.clientWeb
       .bidiCircleInfoData()
       .on('data', (resultItem) => {
@@ -98,11 +104,12 @@ export class CanvasComponent implements OnInit {
         this.grpcRevice(result);
       });
 
+    //TODO:第一筆資料上傳，可以透過第一次的erverStream上傳，還是要寫在unary呢??，可以跟後端討論看看
     //1.創建自己的Circle;
     this.colorCode = this.getColorCode();
     this.myCircle = new Circle(this.ctx, this.colorCode, 300, 150);
 
-    //3.傳送初始資料上去
+    //2.傳送初始資料上去
     let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
     this.stream.write(circleInfo);
   }
@@ -139,8 +146,10 @@ export class CanvasComponent implements OnInit {
     this.isPlaying = false;
     let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
     circleInfo.setIsfinish(true);
-    this.stream.write(circleInfo);
-    this.stream.end();
+    //TODO:傳送資料的方法要改成為何?
+    this.clientWeb.bidiCircleInfoData().write(circleInfo);
+
+    //這個callBack是要移除所有的監聽事件
     this.callBack();
   }
 }
