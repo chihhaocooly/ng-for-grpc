@@ -1,6 +1,9 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
+
 package AiiiGRPC;
+
 
 message CircleInfo {
     string colorCode = 1;
@@ -9,12 +12,16 @@ message CircleInfo {
     bool isFinish = 4;
 }
 
+
 message CircleInfoList {
     repeated CircleInfo circleInfos = 1;
 }
 
-service ToDoService {
 
+service ToDoService {
     rpc BidiCircleInfoData(stream CircleInfo) returns (stream CircleInfoList);
-    
+
+    rpc UnaryCircleInfoData(CircleInfo) returns (google.protobuf.Empty);
+
+    rpc ServerStreamCircleInfoData(CircleInfo) returns (stream CircleInfoList);
 }

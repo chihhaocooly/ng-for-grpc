@@ -21,7 +21,7 @@ export class CanvasComponent implements OnInit {
   private ctx!: CanvasRenderingContext2D;
 
   public clientWeb = new ToDoServiceClient(
-    'https://node-grpc-envoy-dnz3lqp74q-de.a.run.app'
+    'https://1d0d-220-136-87-83.ngrok.io'
   );
   callBack!: Function;
 
@@ -66,32 +66,42 @@ export class CanvasComponent implements OnInit {
           this.myCircle.x = this.myCircle.x - 4;
           //傳送資料
           let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
-          this.clientWeb.bidiCircleInfoData().write(circleInfo);
+          this.clientWeb.unaryCircleInfoData(circleInfo,callBack=>{
+            
+          });
         }
         if (event.keyCode == 38) {
           this.myCircle.y = this.myCircle.y - 4;
           //傳送資料
           let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
-          this.clientWeb.bidiCircleInfoData().write(circleInfo);
+          this.clientWeb.unaryCircleInfoData(circleInfo,callBack=>{
+            
+          });
         }
         if (event.keyCode == 39) {
           this.myCircle.x = this.myCircle.x + 4;
           //傳送資料
           let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
-          this.clientWeb.bidiCircleInfoData().write(circleInfo);
+          this.clientWeb.unaryCircleInfoData(circleInfo,callBack=>{
+            
+          });
         }
         if (event.keyCode == 40) {
           this.myCircle.y = this.myCircle.y + 4;
           //傳送資料
           let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
-          this.clientWeb.bidiCircleInfoData().write(circleInfo);
+          this.clientWeb.unaryCircleInfoData(circleInfo,callBack=>{
+            
+          });
         }
       }
     );
 
     //0.建立起grpc連線
-    this.stream = this.clientWeb
-      .bidiCircleInfoData()
+    this.myCircle = new Circle(this.ctx, this.colorCode, 300, 150);
+
+    this.clientWeb
+      .serverStreamCircleInfoData(this.createCircleInfo(this.myCircle))
       .on('data', (resultItem) => {
         console.log(resultItem);
         const result = resultItem.getCircleinfosList();
@@ -100,11 +110,6 @@ export class CanvasComponent implements OnInit {
 
     //1.創建自己的Circle;
     this.colorCode = this.getColorCode();
-    this.myCircle = new Circle(this.ctx, this.colorCode, 300, 150);
-
-    //3.傳送初始資料上去
-    let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
-    this.stream.write(circleInfo);
   }
 
   grpcRevice(circleInfos: CircleInfo[]) {
@@ -139,8 +144,9 @@ export class CanvasComponent implements OnInit {
     this.isPlaying = false;
     let circleInfo: CircleInfo = this.createCircleInfo(this.myCircle);
     circleInfo.setIsfinish(true);
-    this.stream.write(circleInfo);
-    this.stream.end();
+    this.clientWeb.unaryCircleInfoData(circleInfo,callBack=>{
+            
+    });
     this.callBack();
   }
 }
